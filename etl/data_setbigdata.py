@@ -10,6 +10,8 @@ Original file is located at
 
 Para começar, vamos criar o banco de dados "vacinados", utilizando os dados da API do data-set escolhido.
 
+Interessante https://app.powerbi.com/view?r=eyJrIjoiNmI1NDcyYTUtYTlhMS00ZWFlLWE4MTYtOGQzM2RkMzgyOTAxIiwidCI6ImQ1ZTU0MGZmLTkzNzAtNGNhMi04YmVmLWQwMzcyMWQxM2MwNSJ9&pageName=ReportSectiondc8ac2b66d0753222000
+
 Dataset escolhido: http://dados.recife.pe.gov.br/dataset/perfil-das-pessoas-vacinadas-covid-19/resource/ca7fb968-3a2c-44ff-a2e8-730d1a689407
 """
 
@@ -162,10 +164,11 @@ print(idadeErrada)
 # lidando com negativos e substituindo por media
 neg = vc[vc['idade'] < 0].index
 vaz = vc[vc['idade'] == ' '].index
-vazi = vc[vc['idade'].isna()]
+vazi = vc[vc['idade'].isna()].index
 mediana_idade = vc[vc['idade'] >= 0]['idade'].median()
 vc.loc[neg, 'idade'] = mediana_idade
 vc.loc[vaz, 'idade'] = mediana_idade
+vc.loc[vazi, 'idade'] = mediana_idade
 
 
 # nenhum dado vazio
@@ -412,3 +415,31 @@ def plot_vacinados_por_mes_ano():
 
 
 plot_vacinados_por_mes_ano()
+
+def plot_vacinados_por_mes_ano_e_genero():
+    conn = sqlite3.connect('vacinados.db')
+    query = "SELECT data_vacinacao, sexo FROM vacinados"
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+
+    df['data_vacinacao'] = pd.to_datetime(df['data_vacinacao'])
+    df['mes_ano'] = df['data_vacinacao'].dt.to_period('M')
+
+    # Pivotar os dados para ter gênero como colunas e contar o número de vacinados para cada mês e ano
+    pivot_df = df.pivot_table(index='mes_ano', columns='sexo', aggfunc='size', fill_value=0)
+
+    # Plotar o gráfico
+    plt.figure(figsize=(10, 6))
+    pivot_df.plot(kind='line', marker='o', linestyle='-')
+
+    plt.title('Número de Vacinados por Mês e Ano dividido por Gênero')
+    plt.xlabel('Mês e Ano')
+    plt.ylabel('Número de Vacinados')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.legend(title='Gênero')
+
+    plt.show()
+
+plot_vacinados_por_mes_ano_e_genero()
